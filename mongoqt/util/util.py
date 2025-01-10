@@ -8,11 +8,13 @@ import base64
 import bcrypt
 import calendar, datetime
 import numpy as np
-from pypinyin import pinyin, Style
 import yt_dlp as youtube_dl
 from pathlib import Path
 
 from itertools import groupby
+
+def get_config_folder():
+    return Path(__file__).parent.parent/'gui'/'resource'/'config'
 
 def process_lyrics_dynamic_optimized(lyrics_text, text_edit_widget):
     # Split lyrics by paragraphs, ignoring only the first line (title)

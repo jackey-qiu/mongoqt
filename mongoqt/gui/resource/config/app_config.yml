@@ -1,0 +1,99 @@
+mongoLogin:
+  url: mongodb+srv://{}:{}@cluster0.sjw9m.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+  login:
+    userName: MONGODBUSERNAME
+    password: MONGODBPASSWORD
+    decode: sys-env #literal or sys-env
+db_info:
+  db_type:
+    - device
+    - order
+  db_use: p25_device_1
+doc_property_template:
+  db-common:
+    doc_name_format: null
+    unique: false
+    mandatory: true  
+  gui-common:
+    label: default
+    name: default
+    value: null
+    show_in_table_viewer: true
+  gui-lineedit:
+    template: gui-common
+    widget_type: LineEdit
+  gui-textedit:
+    template: gui-common
+    widget_type: TextEdit
+  gui-fileeidt:
+    template: gui-common
+    widget_type: FileEdit
+  gui-rangeedit:
+    template: gui-common
+    widget_type: RangeEdit
+    min: 0
+    max: 1000
+    step: 1
+  gui-spinbox:
+    template: gui-common
+    widget_type: SpinBox
+    min: 0
+    max: 1000  
+  gui-dateedit:
+    template: gui-common
+    widget_type: DateEdit
+  gui-datetimeedit:
+    template: gui-common
+    widget_type: DateTimeEdit
+p25_orders_1:
+  db_info: #collection
+    db_description_file: database_info_p25_orders_1.txt
+    db_type: order
+    key_name: product_key
+  product_info:
+    product_key: 
+      template: [db-common, gui-spinbox] 
+      label: product key index (>0)
+      unique: true
+      doc_name_format: product_{}
+    product_name:
+      template: ['db-common', 'gui-lineedit']
+    product_type:
+      template: ['db-common', 'gui-lineedit']
+    order_person: 
+      template: ['db-common', 'gui-lineedit']
+    order_date: 
+      template: ['db-common', 'gui-datetimeedit']   
+    product_state:
+      template: ['db-common', 'gui-lineedit']
+    ariba_info:     
+      template: ['db-common', 'gui-textedit'] 
+      show_in_table_viewer: false
+    note: 
+      template: ['db-common', 'gui-textedit']
+p25_device_1:
+  db_info: 
+    db_description_file: database_info_p25_device_1.txt
+    db_type: device
+    key_name: device_key
+  device_info:
+    device_key: 
+      template: ['db-common', 'gui-lineedit'] 
+    device_name: 
+      template: ['db-common', 'gui-lineedit']
+    manufacture_company: 
+      template: ['db-common', 'gui-lineedit']
+    device_mode: 
+      template: ['db-common', 'gui-lineedit']
+    device_parameters: 
+      template: ['db-common', 'gui-lineedit']
+    device_location:
+      template: ['db-common', 'gui-lineedit']
+    delivery_date:
+      template: ['db-common', 'gui-lineedit']
+    device_status:
+      template: ['db-common', 'gui-lineedit']
+    responsible_person: 
+      template: ['db-common', 'gui-lineedit']
+    note:
+      template: ['db-common', 'gui-textedit'] 
