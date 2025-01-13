@@ -10,6 +10,7 @@ from mongoqt.util.yaml_util import get_gui_dict, get_db_dict
 from mongoqt.util.util import error_pop_up, image_string_to_qimage, image_to_64base_string, disable_all_tabs_but_one, PandasModel
 from pymongo import MongoClient
 import certifi, urllib
+from ..util.yaml_util import get_tableviewer_content_dict
 
 def connect_mongodb(url_template, user_name, password):
     url_complete = url_template.format(user_name,urllib.parse.quote(password.encode('utf-8')))
@@ -20,7 +21,55 @@ def connect_mongodb(url_template, user_name, password):
         return
     return client
 
-def create_pandas_data_from_db(mongodb_client, db_config, db, constrains = [], limit = 50):
+def update_selected_record(self, index = None):
+    if type(index)!=int:
+        key = self.pandas_model._data[self.config[self.database_name]['db_info']['key_name']].tolist()[index.row()]
+    else:
+        key = self.pandas_model._data[self.config[self.database_name]['db_info']['key_name']].tolist()[index]
+    collections = [each for each in self.database.list_collection_names() if each!= 'db_info']
+    data_container_list = [self.database[each].find_one({self.config[self.database_name]['db_info']['key_name']:key}) for each in collections]
+    data_dict = {}
+    for each in data_container_list:
+        each.pop('_id')
+        # each.pop(self.config[self.database_name]['db_info']['key_name'])
+        data_dict.update(each)
+    for each in list(self.container_):
+        if each.name in data_dict:
+            try:
+                each.value = data_dict[each.name]
+            except Exception as err:
+                error_pop_up(str(err))
+    return data_dict
+
+def init_pandas_model_from_db_base(self, onclicked_func = update_selected_record, constrains={},update_func = lambda a:a, pandas_data = None, tab_widget_name = 'tabWidget_2', table_view_widget_name='tableView_book_info'):
+    #disable_all_tabs_but_one(self, tab_widget_name, tab_indx)
+    if type(pandas_data)!=pd.DataFrame:
+        data = create_pandas_data_from_db(self.mongodb_client, db_config=self.config, db_name = self.database_name, constrains=constrains)
+    else:
+        data = pandas_data
+    header_name_map = {}
+    self.pandas_model = PandasModel(data = data, tableviewer = getattr(self, table_view_widget_name), main_gui = self, column_names=header_name_map)
+    #sort the table according to the first column
+    try:#for some db, first column is bool checked values
+        self.pandas_model.sort(0, False)
+    except:
+        pass
+    if update_func!=None:
+        self.pandas_model.dataChanged.connect(partial(update_func,self))
+    getattr(self, table_view_widget_name).setModel(self.pandas_model)
+    getattr(self, table_view_widget_name).resizeColumnsToContents()
+    getattr(self, table_view_widget_name).setSelectionBehavior(QAbstractItemView.SelectRows)
+    getattr(self, table_view_widget_name).horizontalHeader().setStretchLastSection(True)
+    try:
+        getattr(self, table_view_widget_name).clicked.disconnect()
+    except:
+        pass
+    getattr(self, table_view_widget_name).clicked.connect(partial(onclicked_func,self))
+    #select the first row upon init
+    getattr(self, table_view_widget_name).selectRow(0)
+    # populate_search_field(self, )
+
+def create_pandas_data_from_db(mongodb_client, db_config, db_name, constrains = {}):
     """extact data from database and create a pandas dataframe to be used as table model input for table 
        viewer widget
 
@@ -28,40 +77,15 @@ def create_pandas_data_from_db(mongodb_client, db_config, db, constrains = [], l
         db_type (str, optional): database type you specify in the yaml file. Defaults to 'book'.
         single_collection (bool, optional): extract data from single collection or not. Defaults to True.
         constrains (list, optional): in the case of multiple collections, you need to give the constrains to fielter out one record.
-                                     eg. ['date','2023-09-03'], this constrain will extract the record in each collection where collection.date = '2032-09-03'
+                                     eg. {'date':'2023-09-03'}, this constrain will extract the record in each collection where collection.date = '2032-09-03'
     """
-    data = {}
-    var_column_names = get_header_name(db_config)
-    collections = get_collection_name(db_config)
-    assert len(collections)>=1, "no collection is provided in yaml"
-    for key, value in var_column_names.items():
-        data[key] = []
-    for collection in collections:
-        for each in mongodb_client[db][collection].find():
-        # for each in self.database[collection].find().limit(limit):
-            #if constrains[0] not in each:
-            #    break
-            assert constrains[0] in each, 'The constrain key' + {constrains[0]} + 'is not found in the database'
-            if each[constrains[0]] == constrains[1]:
-                for each_key in data:
-                    if each_key!='collections':
-                        data[each_key].append(each.get(each_key, 'NA'))
-                data['collections'].append(self.db_config_info['db_types'][db_type]['collections'][collection].get('map_name', collection))
-                break
-    return pd.DataFrame(data)
-
-def extract_one_record(mongo_client, db_config, collection, constrain, db, cache = None, ):
-    #specify the db name if you are not using the context database
-    doc_info = get_document_info_from_yaml_config(db_config)
-    if cache==None:
-        data_from_db = mongo_client[db][collection].find_one(constrain)
-    else:
-        data_from_db = cache
-    NO_RECORD = False
-    if data_from_db==None:
-        NO_RECORD = True
-    return data_from_db
-
+    tableviewer_info = get_tableviewer_content_dict(db_config, db_name)
+    match_pd_list = []
+    for coll, doc_list in tableviewer_info.items():
+        pd_temp = pd.DataFrame(mongodb_client[db_name][coll].find(constrains, dict(zip(doc_list+['_id'], [1]*len(doc_list)+[0]))))
+        match_pd_list.append(pd_temp)
+    return pd.concat(match_pd_list, axis=1) 
+    
 def delete_one_record(main_gui, mongodb_client, db, constrain, cbs = [], silent = False, msg = 'Are you sure to delete this paper?'):
     reply = True
     if not silent:
@@ -71,7 +95,7 @@ def delete_one_record(main_gui, mongodb_client, db, constrain, cbs = [], silent 
     if reply:
         try:
             for collection in mongodb_client[db].list_collection_names():
-                mongodb_client[db][collection].delete_many(constrain)
+                mongodb_client[db][collection].delete_one(constrain)
             if main_gui!=None:
                 main_gui.statusbar.clearMessage()
                 main_gui.statusbar.showMessage(f'The record {constrain} is deleted from DB successfully.')

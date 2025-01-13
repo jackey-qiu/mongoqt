@@ -55,7 +55,6 @@ p25_orders_1:
       template: [db-common, gui-spinbox] 
       label: product key index (>0)
       unique: true
-      doc_name_format: product_{}
     product_name:
       template: ['db-common', 'gui-lineedit']
     product_type:
@@ -71,6 +70,7 @@ p25_orders_1:
       show_in_table_viewer: false
     note: 
       template: ['db-common', 'gui-textedit']
+      show_in_table_viewer: false
 p25_device_1:
   db_info: 
     db_description_file: database_info_p25_device_1.txt
@@ -79,6 +79,7 @@ p25_device_1:
   device_info:
     device_key: 
       template: ['db-common', 'gui-lineedit'] 
+      unique: true
     device_name: 
       template: ['db-common', 'gui-lineedit']
     manufacture_company: 

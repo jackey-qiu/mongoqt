@@ -292,7 +292,7 @@
        </property>
        <property name="maximumSize">
         <size>
-         <width>500</width>
+         <width>5000</width>
          <height>16777215</height>
         </size>
        </property>
@@ -311,7 +311,11 @@
          </widget>
         </item>
         <item>
-         <widget class="QTableView" name="tableView_2"/>
+         <widget class="QTableView" name="tableView_2">
+          <property name="sortingEnabled">
+           <bool>true</bool>
+          </property>
+         </widget>
         </item>
         <item>
          <widget class="QGroupBox" name="groupBox_2">

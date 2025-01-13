@@ -40,6 +40,17 @@ def parse_template(config_dict, key_template):
             result.update(_parse_str_key(each))
     return result
 
+def get_tableviewer_content_dict(config_dict, db_key):
+    colls = [each for each in config_dict[db_key].keys() if each!='db_info']
+    content_dict = {}
+    for each in colls:
+        content_dict[each] = []
+        for doc in config_dict[db_key][each].keys():
+            show = get_gui_dict(config_dict, db_key, each, doc, return_content = 'tableviewer')['show_in_table_viewer']
+            if show:
+                content_dict[each].append(doc)
+    return content_dict
+
 def get_gui_dict(config_dict, db_key, collection_key, doc_key, return_content = 'all'):
     #return_content in ['all','magicgui','tableviewer]
     DB_properties = ['doc_name_format', 'unique', 'mandatory']

@@ -7,7 +7,13 @@ import sys, json, os
 import typing
 from pathlib import Path
 from mongoqt.util.yaml_util import get_gui_dict
-from mongoqt.db_apis.common_db_opts import connect_mongodb, validate_and_format_mongodb_document, add_one_record, update_one_record
+from mongoqt.db_apis.common_db_opts import connect_mongodb, \
+                                           validate_and_format_mongodb_document, \
+                                           add_one_record, \
+                                           update_one_record,\
+                                           delete_one_record,\
+                                           init_pandas_model_from_db_base,\
+                                           update_selected_record
 
 def connect_to_mangodb(self):
     url = self.config['mongoLogin']['url']
@@ -27,12 +33,18 @@ def test_add_one_record(self):
     data_dict = dict([(each.name, each.value) for each in self.container_])
     self.database['product_info'].insert_one(data_dict)
 
+def slot_delete_one_record(self):
+    for each in self.container_:
+        if each.name==self.config[self.database_name]['db_info']['key_name']:
+            delete_one_record(self, self.mongodb_client, self.database_name, {each.name: each.value}, cbs = [slot_switch_current_use_DB])
+            return
+
 def slot_add_one_record(self):
-    add_one_record(self, self.container_)
+    add_one_record(self, self.container_, cbs = [slot_switch_current_use_DB])
 
 def slot_update_one_record(self):
     try:
-        update_one_record(self, self.container_)
+        update_one_record(self, self.container_, cbs = [slot_switch_current_use_DB])
         self.statusbar.showMessage('The record is updated!')
     except Exception as err:
         self.statusbar.showMessage('The record is NOT updated! due to {}.'.format(str(err)))
@@ -73,6 +85,11 @@ def slot_switch_current_use_DB(self):
     self.config['db_info']['db_use'] = self.database_name
     self.database = self.mongodb_client[self.database_name]
     create_magic_gui_widget(self)
+    init_pandas_model_from_db_base(self, table_view_widget_name='tableView_2')
+    try:
+        update_selected_record(self, 0)
+    except Exception as err:
+        print(str(err))
 
 def test_validation(self):
     data_from_client = dict([(each.name, each.value) for each in self.container_])

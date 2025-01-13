@@ -9,7 +9,8 @@ from mongoqt.util.util import get_config_folder
 from mongoqt.gui.gui_apis.gui_opts import test_magic_gui_widget, connect_to_mangodb, \
                                           create_magic_gui_widget, slot_add_one_record,\
                                           populate_DB_combobox, slot_update_DB_list_combobox,\
-                                          slot_switch_current_use_DB, slot_update_one_record
+                                          slot_switch_current_use_DB, slot_update_one_record,\
+                                          slot_delete_one_record
                                           
 import qdarkstyle
 import yaml
@@ -50,6 +51,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_update.clicked.connect(lambda: slot_update_one_record(self))
         self.comboBox_db_type.currentTextChanged.connect(lambda: slot_update_DB_list_combobox(self))
         self.pushButton_load.clicked.connect(lambda: slot_switch_current_use_DB(self))
+        self.pushButton_delete.clicked.connect(lambda: slot_delete_one_record(self))
 
     def closeEvent(self, event) -> None:
         quit_msg = "Are you sure you want to exit the program? If yes, all text indexes will be deleted!"
@@ -70,7 +72,7 @@ class MyMainWindow(QMainWindow):
 
 def app_launcher():
     ui_file = str(Path(__file__).parent/'resource'/ "ui" / 'main_gui_ui.ui')
-    QApplication.setStyle("fusion")
+    QApplication.setStyle("windows")
     app = QApplication(sys.argv)
     myWin = MyMainWindow()
     myWin.init_gui(ui_file)
