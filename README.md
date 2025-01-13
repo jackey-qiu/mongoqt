@@ -1,6 +1,6 @@
 # mongoqt
 
 # installation steps
-# cd to mongoqt/mongoqt
-# run pip install -e .
-# type in 'mongoqt' in terminal and hit enter
+1. cd to mongoqt/mongoqt
+2. run pip install -e .
+3. type in 'mongoqt' in terminal and hit enter
