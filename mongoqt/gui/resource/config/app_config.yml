@@ -8,7 +8,11 @@ db_info:
   db_type:
     - device
     - order
+    - queue
+    - tango
   db_use: p25_device_1
+gui_info:
+  magic_gui_widget_host: formLayout #object name for the layout (vertical or form layout)
 doc_property_template:
   db-common:
     doc_name_format: null
@@ -69,6 +73,41 @@ p25_orders_1:
       template: ['db-common', 'gui-textedit'] 
       show_in_table_viewer: false
     note: 
+      template: ['db-common', 'gui-textedit']
+      show_in_table_viewer: false
+scan_queue_1:
+  db_info: #collection
+    db_description_file: database_info_p25_orders_1.txt
+    db_type: queue
+    key_name: task_key
+  queue_info:
+    task_key: 
+      template: [db-common, gui-spinbox] 
+      label: product key index (>0)
+      unique: true
+    scan_macro:
+      template: ['db-common', 'gui-lineedit']
+    prescan_action:
+      template: ['db-common', 'gui-lineedit']
+    scan_state:
+      template: ['db-common', 'gui-lineedit']
+      value: queued
+    scan_info:
+      template: ['db-common', 'gui-textedit']
+      value: scan meta info goes here
+tango_device_1:
+  db_info: #collection
+    db_description_file: database_info_p25_orders_1.txt
+    db_type: tango
+    key_name: tango_host
+  tango_info:
+    tango_host: 
+      template: [db-common, gui-lineedit] 
+      label: tango host
+      unique: true
+    lab_location:
+      template: ['db-common', 'gui-lineedit']
+    tango_devices:
       template: ['db-common', 'gui-textedit']
       show_in_table_viewer: false
 p25_device_1:

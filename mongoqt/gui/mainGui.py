@@ -6,11 +6,11 @@ from pyqtgraph.Qt import QtGui
 from pathlib import Path
 from PyQt5.QtWidgets import QMainWindow,QApplication, QLabel
 from mongoqt.util.util import get_config_folder
-from mongoqt.gui.gui_apis.gui_opts import test_magic_gui_widget, connect_to_mangodb, \
+from mongoqt.gui.gui_apis.gui_opts import test_magic_gui_widget, slot_connect_to_mangodb, \
                                           create_magic_gui_widget, slot_add_one_record,\
                                           populate_DB_combobox, slot_update_DB_list_combobox,\
                                           slot_switch_current_use_DB, slot_update_one_record,\
-                                          slot_delete_one_record
+                                          slot_delete_one_record, slot_update_db_info_from_client
                                           
 import qdarkstyle
 import yaml
@@ -19,7 +19,7 @@ class MyMainWindow(QMainWindow):
     def __init__(self, parent = None):
         super(MyMainWindow, self).__init__(parent)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(str(Path(__file__).parent / 'resources'/'ui'/'icons'/'ccglogo.png')), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(str(Path(__file__).parent / 'resource'/'ui'/'icons'/'app_logo.png')), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.setWindowIcon(icon)
         self.setIconSize(QtCore.QSize(24, 24))
         # self.test_gui = test_magic_gui_widget
@@ -39,19 +39,20 @@ class MyMainWindow(QMainWindow):
             database_name = self.config['db_info']['db_use']
             assert database_name in self.config, 'The specified database is not existing in the config file. Reedit the config yaml file to correct it!'
             self.database_name = database_name 
-        connect_to_mangodb(self)
+        slot_connect_to_mangodb(self)
         populate_DB_combobox(self)
         create_magic_gui_widget(self)
         self.connect_slots()
         # self._container = self.test_gui(self)
 
     def connect_slots(self):
-        self.actionDatabaseCloud.triggered.connect(lambda:connect_to_mangodb(self))
+        self.actionDatabaseCloud.triggered.connect(lambda:slot_connect_to_mangodb(self))
         self.pushButton_add.clicked.connect(lambda: slot_add_one_record(self))
         self.pushButton_update.clicked.connect(lambda: slot_update_one_record(self))
         self.comboBox_db_type.currentTextChanged.connect(lambda: slot_update_DB_list_combobox(self))
         self.pushButton_load.clicked.connect(lambda: slot_switch_current_use_DB(self))
         self.pushButton_delete.clicked.connect(lambda: slot_delete_one_record(self))
+        self.pushButton_update_db_info.clicked.connect(lambda: slot_update_db_info_from_client(self))
 
     def closeEvent(self, event) -> None:
         quit_msg = "Are you sure you want to exit the program? If yes, all text indexes will be deleted!"

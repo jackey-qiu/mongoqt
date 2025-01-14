@@ -21,6 +21,7 @@ def connect_mongodb(url_template, user_name, password):
         return
     return client
 
+
 def update_selected_record(self, index = None):
     if type(index)!=int:
         key = self.pandas_model._data[self.config[self.database_name]['db_info']['key_name']].tolist()[index.row()]
@@ -153,13 +154,15 @@ def add_one_record(self, widget_container, extra_info = {}, cbs = []):
     except Exception as e:
         error_pop_up('Failure to append paper info!\n{}'.format(str(e)),'Error') 
 
-def update_one_record(self, widget_container):
+def update_one_record(self, widget_container, cbs):
     data_from_client = dict([(each.name, each.value) for each in widget_container])
     data_from_client, key_values = validate_and_format_mongodb_document(self.database, data_from_client, self.config, self.database_name, False)
     for collection in data_from_client:
         filter = {self.config[self.database_name]['db_info']['key_name']: key_values[collection]}
         new_values = {'$set':data_from_client[collection]}
         self.database[collection].update_one(filter, new_values)
+    for cb in cbs:
+        cb(self)
 
 def text_query_by_field(self, field, query_string, target_field, collection_name, database = None):
     """
