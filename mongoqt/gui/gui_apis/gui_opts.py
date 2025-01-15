@@ -80,6 +80,7 @@ def slot_switch_current_use_DB(self):
     self.database_name = self.comboBox_db_list.currentText()
     self.config['db_info']['db_use'] = self.database_name
     self.database = self.mongodb_client[self.database_name]
+    # self.listener.update_listening_properties(self.database, [key for key in self.config[self.database_name].keys() if key!='db_info'][0])
     create_magic_gui_widget(self)
     init_pandas_model_from_db_base(self, table_view_widget_name='tableView_2')
     update_db_info_on_client(self)

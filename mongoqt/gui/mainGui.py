@@ -6,6 +6,7 @@ from pyqtgraph.Qt import QtGui
 from pathlib import Path
 from PyQt5.QtWidgets import QMainWindow,QApplication, QLabel
 from mongoqt.util.util import get_config_folder
+from mongoqt.gui.gui_apis.event_api import eventListener
 from mongoqt.gui.gui_apis.gui_opts import test_magic_gui_widget, slot_connect_to_mangodb, \
                                           create_magic_gui_widget, slot_add_one_record,\
                                           populate_DB_combobox, slot_update_DB_list_combobox,\
@@ -43,7 +44,14 @@ class MyMainWindow(QMainWindow):
         populate_DB_combobox(self)
         create_magic_gui_widget(self)
         self.connect_slots()
+        self.init_event_listener()
         # self._container = self.test_gui(self)
+
+    def init_event_listener(self):
+        self.listener = eventListener(self)
+        self.listener_thread = QtCore.QThread()
+        self.listener.moveToThread(self.listener_thread)
+        self.listener_thread.started.connect(self.listener.start_listen_server)       
 
     def connect_slots(self):
         self.actionDatabaseCloud.triggered.connect(lambda:slot_connect_to_mangodb(self))
