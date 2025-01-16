@@ -13,6 +13,16 @@ import certifi, urllib
 from ..util.yaml_util import get_tableviewer_content_dict
 
 def connect_mongodb(url_template, user_name, password):
+    """_summary_
+
+    Args:
+        url_template (str with two place holder for username and password): eg "//abc.com:{}:{}mongologin"
+        user_name (str): username
+        password (str): password
+
+    Returns:
+        mongodb client object: _description_
+    """    
     url_complete = url_template.format(user_name,urllib.parse.quote(password.encode('utf-8')))
     try:
         client = MongoClient(url_complete,tlsCAFile=certifi.where())
@@ -22,7 +32,17 @@ def connect_mongodb(url_template, user_name, password):
     return client
 
 
-def update_selected_record(self, index = None):
+def update_selected_record(self, index = 0):
+    """callback when clicking one row of tableview
+    To get this work, it is assumed that there are pandas_model and container_ objects in the mainGUI frame
+
+    Args:
+        self: main pyqt GUI frame object
+        index (int or Index, optional): tableview index object, passed via tableview signal. Defaults to 0.
+
+    Returns:
+        dict: complete information of the target record
+    """    
     if type(index)!=int:
         key = self.pandas_model._data[self.config[self.database_name]['db_info']['key_name']].tolist()[index.row()]
     else:
@@ -32,8 +52,8 @@ def update_selected_record(self, index = None):
     data_dict = {}
     for each in data_container_list:
         each.pop('_id')
-        # each.pop(self.config[self.database_name]['db_info']['key_name'])
         data_dict.update(each)
+    #update magicGUI widget values
     for each in list(self.container_):
         if each.name in data_dict:
             try:
@@ -42,7 +62,17 @@ def update_selected_record(self, index = None):
                 error_pop_up(str(err))
     return data_dict
 
-def init_pandas_model_from_db_base(self, onclicked_func = update_selected_record, constrains={},update_func = lambda a:a, pandas_data = None, tab_widget_name = 'tabWidget_2', table_view_widget_name='tableView_book_info'):
+def init_pandas_model_from_db_base(self, onclicked_func = update_selected_record, constrains={},update_func = lambda a:a, pandas_data = None, table_view_widget_name='tableView_book_info'):
+    """create pandas model for the tableview widget, the created model is named pandas_model refrerable via self.pandas_model
+
+    Args:
+        self: pyqt5 main gui frame object
+        onclicked_func (_type_, optional): callback when clicking one row of tableviewer. Defaults to update_selected_record.
+        constrains (dict, optional): constrain for extracting data. Defaults to {}, which means to extract all records.
+        update_func (_type_, optional): callback when the data in pandas_model change. Defaults to lambdaa:a.
+        pandas_data (_type_, optional): pandas frame to be shown in the tableviewer. Defaults to None. If given, database will not be used.
+        table_view_widget_name (str, optional): tableView widget name in the main frame. Defaults to 'tableView_book_info'.
+    """    
     #disable_all_tabs_but_one(self, tab_widget_name, tab_indx)
     if type(pandas_data)!=pd.DataFrame:
         data = create_pandas_data_from_db(self.mongodb_client, db_config=self.config, db_name = self.database_name, constrains=constrains)
@@ -75,11 +105,15 @@ def create_pandas_data_from_db(mongodb_client, db_config, db_name, constrains = 
        viewer widget
 
     Args:
-        db_type (str, optional): database type you specify in the yaml file. Defaults to 'book'.
-        single_collection (bool, optional): extract data from single collection or not. Defaults to True.
-        constrains (list, optional): in the case of multiple collections, you need to give the constrains to fielter out one record.
-                                     eg. {'date':'2023-09-03'}, this constrain will extract the record in each collection where collection.date = '2032-09-03'
-    """
+        mongodb_client (mongodb client object): _description_
+        db_config (dict): database config loaded from yaml config file
+        db_name (str): database name
+        constrains (dict, optional): _description_. Defaults to {}.
+
+    Returns:
+        pandas dataframe object: _description_
+    """    
+
     tableviewer_info = get_tableviewer_content_dict(db_config, db_name)
     match_pd_list = []
     for coll, doc_list in tableviewer_info.items():
@@ -87,10 +121,21 @@ def create_pandas_data_from_db(mongodb_client, db_config, db_name, constrains = 
         match_pd_list.append(pd_temp)
     return pd.concat(match_pd_list, axis=1) 
     
-def delete_one_record(main_gui, mongodb_client, db, constrain, cbs = [], silent = False, msg = 'Are you sure to delete this paper?'):
+def delete_one_record(main_gui, mongodb_client, db, constrain, cbs = [], silent = False):
+    """_summary_
+
+    Args:
+        main_gui (_type_): mainGUi frame object
+        mongodb_client (_type_): mongodb client for database connection
+        db (str): database name
+        constrain (_type_): _description_
+        cbs (list, optional): callbacks to be executed after deleting action. 
+                              Common callback is update the tableview. Defaults to [].
+        silent (bool, optional): whether or not poping up a question dialog for confirmation. Defaults to False.
+    """    
     reply = True
     if not silent:
-        reply_ = QMessageBox.question(main_gui, 'Message', msg, QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+        reply_ = QMessageBox.question(main_gui, 'Message', 'Are you sure to delete this record?', QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
         reply = reply_ == QMessageBox.Yes
     
     if reply:
@@ -109,6 +154,23 @@ def check_exist(db, collection, doc_key, doc_value):
     return db[collection].count_documents({doc_key: doc_value}) > 0
 
 def validate_and_format_mongodb_document(db, data_dict, config_dict, db_key, check_unique_key = True):
+    """validate and format the collection info extracted from magicGUI widgets using the schema defined in the config
+
+    Args:
+        db (mongodb database object): _description_
+        data_dict (dict): current record details extracted from gui widgets
+        config_dict (dict): schema information defined in the config file
+        db_key (str): name of database under consideration
+        check_unique_key (bool, optional): whether or not check the ubiqueous of the key. 
+                                           Set it to False when updating an existing record, 
+                                           set it to True when adding a new record. Defaults to True.
+                                           When adding a new record, if the key is already existing, 
+                                           error message dialog will be poped up.
+                                           
+    Returns:
+        dict: formated data_dict (if check_unique_key == True)
+        dict, dict: formated data_dict, key_value (collection name as keys, and the keyname as value; used as meta data for updating record)
+    """
     #collections
     keys_collection = [each for each in list(config_dict[db_key].keys()) if each!='db_info']
     result = {}
@@ -139,6 +201,17 @@ def validate_and_format_mongodb_document(db, data_dict, config_dict, db_key, che
         return result, key_values
 
 def add_one_record(self, widget_container, extra_info = {}, cbs = []):
+    """_summary_
+
+    Args:
+        self: maingui frame object
+        widget_container (magicgui container object): _description_
+        extra_info (dict, optional): extra info to add to the record. Defaults to {}.
+        cbs (list, optional): a list of callbacks. Defaults to [].
+
+    Returns:
+        dict: validated and formated record information
+    """
     data_from_client = dict([(each.name, each.value) for each in widget_container])
     data_from_client = validate_and_format_mongodb_document(self.database, data_from_client, self.config, self.database_name)
     #data_from_client after this validation will be a dict with collection names as the keys          
@@ -154,7 +227,13 @@ def add_one_record(self, widget_container, extra_info = {}, cbs = []):
     except Exception as e:
         error_pop_up('Failure to append paper info!\n{}'.format(str(e)),'Error') 
 
-def update_one_record(self, widget_container, cbs):
+def update_one_record(self, widget_container, cbs = []):
+    """_summary_
+
+    Args:
+        widget_container (magicgui container object): _description_
+        cbs (list): a list of callbacks
+    """
     data_from_client = dict([(each.name, each.value) for each in widget_container])
     data_from_client, key_values = validate_and_format_mongodb_document(self.database, data_from_client, self.config, self.database_name, False)
     for collection in data_from_client:

@@ -40,11 +40,11 @@ class MyMainWindow(QMainWindow):
             database_name = self.config['db_info']['db_use']
             assert database_name in self.config, 'The specified database is not existing in the config file. Reedit the config yaml file to correct it!'
             self.database_name = database_name 
+        self.init_event_listener()
         slot_connect_to_mangodb(self)
         populate_DB_combobox(self)
         create_magic_gui_widget(self)
         self.connect_slots()
-        self.init_event_listener()
         # self._container = self.test_gui(self)
 
     def init_event_listener(self):

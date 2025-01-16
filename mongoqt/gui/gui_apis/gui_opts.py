@@ -27,6 +27,7 @@ def slot_connect_to_mangodb(self):
     try:
         self.mongodb_client = connect_mongodb(url, user_name, password)
         # self.database = self.mongodb_client[self.database_name]
+        self.listener_thread.start()
         self.statusbar.showMessage('Success to connect to MongoDB Atlas!')
     except Exception as err:
         self.statusbar.showMessage('Fail to connect to MongoDB Atlas! due to {}'.format(str(err)))
