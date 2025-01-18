@@ -1,22 +1,27 @@
 from PyQt5 import QtCore
 from functools import partial
+import inspect
 
 class eventListener(QtCore.QObject):
-
+    pipeline = [{"$match": {"operationType": {"$in":["insert","update","delete"]}}}]
+    event_on = QtCore.pyqtSignal(object)
     def __init__(self,parent):
         super().__init__()
         self.parent = parent
         self.database_client = None
-        self.pipeline = [{"$match": {"operationType": {"$in":["insert","update","delete"]}}}]
-        self.filter = {'db':['p25_device_1'],'coll':'*'}
+        self.filter = {'db':'*','coll':'*'}
         self.callback = partial(print, "processed change:")
 
-    def update_listening_properties(self, client, pipeline = None, filter = {'db':'*','coll':'*'}, callback = partial(print, "processed change:")):
-        self.database_client = client
-        if pipeline!=None:
-            self.pipeline = pipeline
-        self.filter = filter
-        self.callback = callback
+    def update_listening_properties(self, client = None, filter = None, callback = None):
+        print('updating listening properties!!')
+        if client!=None:
+            self.database_client = client
+        if filter!=None:
+            assert (filter['db']=='*' or type(filter['db'])==list) and (filter['coll']=='*' or type(filter['coll'])==list), "Wrong format for filter"
+            self.filter = filter
+        if callback!=None:
+            assert callable(callback), "the callback provided is not callable"
+            self.callback = callback
 
     def start_listen_server(self):
         print(f"Listening for changes...{self.pipeline}")
@@ -33,17 +38,24 @@ class eventListener(QtCore.QObject):
                 all_db = True
             if self.filter['coll']=='*':
                 all_coll = True
-            if all_db:
-                if all_coll:
-                    self.callback(change)
+            try:
+                if all_db:
+                    if all_coll:
+                        self.event_on.emit(change)
+                        #self.callback(change)
+                    else:
+                        if change['ns']['coll'] in self.filter['coll']:
+                            self.event_on.emit(change)
+                            #self.callback(change)
                 else:
-                    if change['ns']['coll'] in self.filter['coll']:
-                        self.callback(change)
-            else:
-                if all_coll:
-                    if change['ns']['db'] in self.filter['db']:
-                        self.callback(change)
-                else:
-                    if (change['ns']['db'] in self.filter['db']) and \
-                       (change['ns']['coll'] in self.filter['coll']):
-                        self.callback(change)
+                    if all_coll:
+                        if change['ns']['db'] in self.filter['db']:
+                            self.event_on.emit(change)
+                            #self.callback(change)
+                    else:
+                        if (change['ns']['db'] in self.filter['db']) and \
+                        (change['ns']['coll'] in self.filter['coll']):
+                            self.event_on.emit(change)
+                            #self.callback(change)
+            except Exception as err:
+                print('Error', str(err))

@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtGui import QFont
 import yaml
 import sys, json, os
+from functools import partial
 import typing
 from pathlib import Path
 from mongoqt.util.yaml_util import get_gui_dict
@@ -77,18 +78,33 @@ def slot_update_DB_list_combobox(self):
     self.comboBox_db_list.addItems(db_dict[self.comboBox_db_type.currentText()])
     self.comboBox_db_list.setCurrentText(db_dict[self.comboBox_db_type.currentText()][0])
 
-def slot_switch_current_use_DB(self):
+def _event_listener_msg(self, data):
+    msg_format = 'Database record has been {}ed from upstream!'.format
+    if 'operationType' in data:
+        msg = msg_format(data['operationType'])
+    else:
+        msg = msg_format('added')
+    self.statusbar.showMessage(msg)
+
+def slot_switch_current_use_DB(self,*args, update_listener = False):
     self.database_name = self.comboBox_db_list.currentText()
     self.config['db_info']['db_use'] = self.database_name
     self.database = self.mongodb_client[self.database_name]
     # self.listener.update_listening_properties(self.database, [key for key in self.config[self.database_name].keys() if key!='db_info'][0])
-    create_magic_gui_widget(self)
+    if update_listener:
+        create_magic_gui_widget(self)
     init_pandas_model_from_db_base(self, table_view_widget_name='tableView_2')
     update_db_info_on_client(self)
     try:
         update_selected_record(self, 0)
     except Exception as err:
         print(str(err))
+    #update listener property
+    if update_listener:
+        self.listener.update_listening_properties(filter = {'db':[self.database_name],'coll':'*'})
+        self.listener.event_on.connect(partial(slot_switch_current_use_DB,self))
+        self.listener.event_on.connect(print)
+        self.listener.event_on.connect(partial(_event_listener_msg, self))
 
 def populate_DB_combobox(self):
     self.comboBox_db_type.clear()

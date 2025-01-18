@@ -58,7 +58,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_add.clicked.connect(lambda: slot_add_one_record(self))
         self.pushButton_update.clicked.connect(lambda: slot_update_one_record(self))
         self.comboBox_db_type.currentTextChanged.connect(lambda: slot_update_DB_list_combobox(self))
-        self.pushButton_load.clicked.connect(lambda: slot_switch_current_use_DB(self))
+        self.pushButton_load.clicked.connect(lambda: slot_switch_current_use_DB(self, update_listener=True))
         self.pushButton_delete.clicked.connect(lambda: slot_delete_one_record(self))
         self.pushButton_update_db_info.clicked.connect(lambda: slot_update_db_info_from_client(self))
 
