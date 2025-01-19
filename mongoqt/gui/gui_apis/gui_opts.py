@@ -78,21 +78,13 @@ def slot_update_DB_list_combobox(self):
     self.comboBox_db_list.addItems(db_dict[self.comboBox_db_type.currentText()])
     self.comboBox_db_list.setCurrentText(db_dict[self.comboBox_db_type.currentText()][0])
 
-def _event_listener_msg(self, data):
-    msg_format = 'Database record has been {}ed from upstream!'.format
-    if 'operationType' in data:
-        msg = msg_format(data['operationType'])
-    else:
-        msg = msg_format('added')
-    self.statusbar.showMessage(msg)
-
 def slot_switch_current_use_DB(self,*args, update_listener = False):
     self.database_name = self.comboBox_db_list.currentText()
     self.config['db_info']['db_use'] = self.database_name
     self.database = self.mongodb_client[self.database_name]
     # self.listener.update_listening_properties(self.database, [key for key in self.config[self.database_name].keys() if key!='db_info'][0])
-    if update_listener:
-        create_magic_gui_widget(self)
+    #if update_listener:
+    create_magic_gui_widget(self)
     init_pandas_model_from_db_base(self, table_view_widget_name='tableView_2')
     update_db_info_on_client(self)
     try:
@@ -102,9 +94,6 @@ def slot_switch_current_use_DB(self,*args, update_listener = False):
     #update listener property
     if update_listener:
         self.listener.update_listening_properties(filter = {'db':[self.database_name],'coll':'*'})
-        self.listener.event_on.connect(partial(slot_switch_current_use_DB,self))
-        self.listener.event_on.connect(print)
-        self.listener.event_on.connect(partial(_event_listener_msg, self))
 
 def populate_DB_combobox(self):
     self.comboBox_db_type.clear()
@@ -142,6 +131,8 @@ def delete_widgets_from_layout(layout):
         layout.itemAt(i).widget().setParent(None)
 
 def create_magic_gui_widget(parent):
+    api_create_magic_gui_widget(parent, parent.config, parent.database_name)
+    '''
     result = parent.config
     collection_keys = list(parent.config[parent.database_name].keys())
     #assume two collections only: db_info and the other one
@@ -155,6 +146,29 @@ def create_magic_gui_widget(parent):
     #verticalLayout_magic_gui is layout object that can be referred from parent as parent.verticalLayout_magic_gui
     # container_ = make_magic_gui_container(parent, magic_gui_dict, 'verticalLayout_collection_list')
     container_ = make_magic_gui_container(magic_gui_dict, getattr(parent, parent.config['gui_info']['magic_gui_widget_host']))
+    parent.container_ = container_
+    '''
+
+def api_create_magic_gui_widget(parent, config, db_name):
+    """helper to create magic gui widgets (accessable as parent.container_) and populate the widget to the hoster widget defined in maingui frame
+
+    Args:
+        parent (mainWindow qt object): _description_
+        config (dict): python dict extract from yaml file, see the config file (mongoqt\gui\resource\config\app_config.yml) for details (you need to stick to the structure)
+        db_name (str): name of the database under consideration
+    """
+    collection_keys = list(config[db_name].keys())
+    #assume two collections only: db_info and the other one
+    collection = [each for each in collection_keys if each!='db_info']
+    assert len(collection)==1, "only two collections are allowed for each database!"
+    collection = collection[0]
+    doc_keys = list(config[db_name][collection].keys())
+    magic_gui_dict = {}
+    for each in doc_keys:
+        magic_gui_dict[each] = get_gui_dict(config, db_name,collection,each,'magicgui')
+    #verticalLayout_magic_gui is layout object that can be referred from parent as parent.verticalLayout_magic_gui
+    # container_ = make_magic_gui_container(parent, magic_gui_dict, 'verticalLayout_collection_list')
+    container_ = make_magic_gui_container(magic_gui_dict, getattr(parent, config['gui_info']['magic_gui_widget_host']))
     parent.container_ = container_
 
 #some test funcs

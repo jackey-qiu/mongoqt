@@ -6,7 +6,7 @@ from pyqtgraph.Qt import QtGui
 from pathlib import Path
 from PyQt5.QtWidgets import QMainWindow,QApplication, QLabel
 from mongoqt.util.util import get_config_folder
-from mongoqt.gui.gui_apis.event_api import eventListener
+from mongoqt.gui.gui_apis.event_api import eventListener, init_event_listener
 from mongoqt.gui.gui_apis.gui_opts import test_magic_gui_widget, slot_connect_to_mangodb, \
                                           create_magic_gui_widget, slot_add_one_record,\
                                           populate_DB_combobox, slot_update_DB_list_combobox,\
@@ -40,18 +40,12 @@ class MyMainWindow(QMainWindow):
             database_name = self.config['db_info']['db_use']
             assert database_name in self.config, 'The specified database is not existing in the config file. Reedit the config yaml file to correct it!'
             self.database_name = database_name 
-        self.init_event_listener()
+        init_event_listener(self, 'slot_event_listener')
         slot_connect_to_mangodb(self)
         populate_DB_combobox(self)
         create_magic_gui_widget(self)
         self.connect_slots()
-        # self._container = self.test_gui(self)
-
-    def init_event_listener(self):
-        self.listener = eventListener(self)
-        self.listener_thread = QtCore.QThread()
-        self.listener.moveToThread(self.listener_thread)
-        self.listener_thread.started.connect(self.listener.start_listen_server)       
+        # self._container = self.test_gui(self)  
 
     def connect_slots(self):
         self.actionDatabaseCloud.triggered.connect(lambda:slot_connect_to_mangodb(self))
@@ -61,6 +55,16 @@ class MyMainWindow(QMainWindow):
         self.pushButton_load.clicked.connect(lambda: slot_switch_current_use_DB(self, update_listener=True))
         self.pushButton_delete.clicked.connect(lambda: slot_delete_one_record(self))
         self.pushButton_update_db_info.clicked.connect(lambda: slot_update_db_info_from_client(self))
+
+    def slot_event_listener(self, data):
+        msg_format = 'Database record has been {}ed from upstream!'.format
+        if 'operationType' in data:
+            msg = msg_format(data['operationType'])
+        else:
+            msg = msg_format('added')
+        self.statusbar.showMessage(msg)
+        print(data)
+        slot_switch_current_use_DB(self, update_listener = False)
 
     def closeEvent(self, event) -> None:
         quit_msg = "Are you sure you want to exit the program? If yes, all text indexes will be deleted!"
