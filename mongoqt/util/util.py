@@ -8,7 +8,7 @@ import base64
 import bcrypt
 import calendar, datetime
 import numpy as np
-import yt_dlp as youtube_dl
+# import yt_dlp as youtube_dl
 from pathlib import Path
 
 from itertools import groupby

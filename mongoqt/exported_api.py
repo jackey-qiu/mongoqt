@@ -25,3 +25,48 @@ How to use these apis?
     Don't forget to start the event thread in the app via main_gui.listener_thread.start(). Once started, it will run untill the maingui is close.
 
 """
+def test_conditions(maingui):
+    assert hasattr(maingui, 'config'), 'config attribute is not defined in maingui'
+    config = maingui.config
+    assert 'mongoLogin' in maingui.config
+    assert 'db_info' in maingui.config
+    assert 'db_use' in config['db_info']
+    # assert hasattr(maingui, 'database_name') and maingui.database_name == config['db_info']['db_use']#
+    assert 'gui_info' in config
+    assert config['db_info']['db_use'] in config
+
+def deploy_mongo_in_one_go(main_gui, tableview_name, action_connect_db = None, pushButton_connect_db = None):
+    import os
+    #connect to mongodb slot
+    def slot_connect_mongodb():
+        url = main_gui.config['mongoLogin']['url']
+        user_name = main_gui.config['mongoLogin']['login']['userName']
+        password = main_gui.config['mongoLogin']['login']['password']
+        if main_gui.config['mongoLogin']['login']['decode'] == 'sys-env':
+            user_name = os.environ[user_name]
+            password = os.environ[password]
+        main_gui.mongodb_client = connect_mongodb(url, user_name, password)
+        main_gui.database = main_gui.mongodb_client[main_gui.config['db_info']['db_use']]
+        main_gui.database_name = main_gui.config['db_info']['db_use']
+    if action_connect_db!=None:
+        if type(action_connect_db)==str:
+            getattr(main_gui, action_connect_db).triggered.connect(slot_connect_mongodb)
+        else:
+            action_connect_db.triggered.connect(slot_connect_mongodb)
+    if pushButton_connect_db!=None:
+        if type(pushButton_connect_db)==str:
+            getattr(main_gui, pushButton_connect_db).clicked.connect(slot_connect_mongodb)
+        else:
+            pushButton_connect_db.clicked.connect(slot_connect_mongodb)
+    slot_connect_mongodb()
+    def slot_event_on():
+        #create magic gui widget
+        api_create_magic_gui_widget(main_gui, main_gui.config, main_gui.config['db_info']['db_use'])
+        #create tableview model
+        init_pandas_model_from_db_base(main_gui, table_view_widget_name=tableview_name)
+    slot_event_on()
+    setattr(main_gui, '_slot_db_listener_event_on', slot_event_on)
+    #create event listener
+    init_event_listener(main_gui, '_slot_db_listener_event_on')
+    #start listening thread
+    main_gui.listener_thread.start()
